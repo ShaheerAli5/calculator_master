@@ -1,209 +1,166 @@
 import 'package:flutter/material.dart';
 import 'package:math_expressions/math_expressions.dart';
 
-void main() => runApp(MyApp());
+void main() => runApp(const MyApp());
 
 class MyApp extends StatefulWidget {
+  const MyApp({super.key});
+
   @override
-  _MyAppState createState() => _MyAppState();
+  State<MyApp> createState() => _MyAppState();
 }
 
 class _MyAppState extends State<MyApp> {
-  bool isDarkMode = false;
+  bool isDark = false;
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      theme: isDarkMode ? ThemeData.dark() : ThemeData.light(),
+      theme: isDark ? ThemeData.dark() : ThemeData.light(),
       home: Calculator(
-        isDarkMode: isDarkMode,
-        onThemeChanged: (value) {
-          setState(() {
-            isDarkMode = value;
-          });
-        },
+        isDark: isDark,
+        toggleTheme: () => setState(() => isDark = !isDark),
       ),
     );
   }
 }
 
 class Calculator extends StatefulWidget {
-  final bool isDarkMode;
-  final ValueChanged<bool> onThemeChanged;
-
-  Calculator({required this.isDarkMode, required this.onThemeChanged});
+  final bool isDark;
+  final VoidCallback toggleTheme;
+  const Calculator({super.key, required this.isDark, required this.toggleTheme});
 
   @override
-  _CalculatorState createState() => _CalculatorState();
+  State<Calculator> createState() => _CalculatorState();
 }
 
 class _CalculatorState extends State<Calculator> {
-  String expression = '';
-  String result = '';
+  String expr = '', res = '';
 
-  void _numClick(String text) {
+  void onTap(String value) {
     setState(() {
-      expression += text;
-    });
-  }
-
-  void _clear(String text) {
-    setState(() {
-      expression = '';
-      result = '';
-    });
-  }
-
-  void _evaluate(String text) {
-    Parser p = Parser();
-    ContextModel cm = ContextModel();
-    try {
-      Expression exp = p.parse(expression);
-      double eval = exp.evaluate(EvaluationType.REAL, cm);
-      setState(() {
-        result = eval.toString();
-      });
-    } catch (e) {
-      setState(() {
-        result = 'Error';
-      });
-    }
-  }
-
-  void _newChatPressed() {
-    setState(() {
-      expression = '';
-      result = ''; // Clear all previous chat/input/result
-    });
-  }
-
-  Widget _buildButton(String text, {Color? color, double fontSize = 24}) {
-    return ElevatedButton(
-      onPressed: () {
-        if (text == 'C') {
-          _clear(text);
-        } else if (text == '=') {
-          _evaluate(text);
-        } else {
-          _numClick(text);
+      if (value == 'C') {
+        expr = '';
+        res = '';
+      } else if (value == '=') {
+        try {
+          Parser p = Parser();
+          Expression exp = p.parse(expr);
+          ContextModel cm = ContextModel();
+          double eval = exp.evaluate(EvaluationType.REAL, cm);
+          res = eval.toString();
+        } catch (e) {
+          res = 'Error';
         }
-      },
-      style: ElevatedButton.styleFrom(
-        backgroundColor: color ?? Theme.of(context).colorScheme.secondary,
-        padding: const EdgeInsets.all(20),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      ),
-      child: Text(
-        text,
-        style: TextStyle(
-          fontSize: fontSize,
-          fontWeight: FontWeight.bold,
-          color: widget.isDarkMode ? Colors.black : Colors.black,
-        ),
-      ),
-    );
+      } else {
+        expr += value;
+      }
+    });
   }
+
+  Color get bgColor => widget.isDark ? const Color(0xFF1E1E1E) : Colors.white;
+  Color get buttonBg => widget.isDark ? const Color(0xFF2D2D2D) : const Color(0xFFF1F2F6);
+  Color get txtColor => widget.isDark ? Colors.white : Colors.black87;
 
   @override
   Widget build(BuildContext context) {
-    final textColor = widget.isDarkMode ? Colors.white : Colors.black;
-    final newChatTextColor = Colors.purple;
+    List<String> buttons = [
+      'C', '(', ')', '/',
+      '7', '8', '9', '*',
+      '4', '5', '6', '-',
+      '1', '2', '3', '+',
+      '0', '00', '.', '='
+    ];
 
     return Scaffold(
+      backgroundColor: bgColor,
       appBar: AppBar(
-        title: const Text(' Smart Calculator'),
+        backgroundColor: bgColor,
+        elevation: 0,
+        title: Text(
+          'Calculator',
+          style: TextStyle(color: txtColor, fontWeight: FontWeight.bold),
+        ),
         actions: [
-          Switch(
-            value: widget.isDarkMode,
-            onChanged: widget.onThemeChanged,
-            activeColor: Colors.yellow,
-            inactiveThumbColor: Colors.black,
+          IconButton(
+            icon: Icon(widget.isDark ? Icons.light_mode : Icons.dark_mode, color: txtColor),
+            onPressed: widget.toggleTheme,
           ),
         ],
       ),
-      body: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: widget.isDarkMode
-                ? [Colors.black, Colors.grey.shade800]
-                : [Colors.white, Colors.grey.shade200],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-        ),
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Display input expression
-              Container(
-                alignment: Alignment.centerRight,
-                padding: const EdgeInsets.symmetric(vertical: 24),
-                child: Text(
-                  expression,
-                  style: TextStyle(fontSize: 32, color: textColor),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          children: [
+            Expanded(
+              flex: 2,
+              child: Container(
+                padding: const EdgeInsets.all(20),
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  color: buttonBg,
+                  borderRadius: BorderRadius.circular(20),
                 ),
-              ),
-
-              // Display result
-              Container(
-                alignment: Alignment.centerRight,
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                child: Text(
-                  result,
-                  style: TextStyle(
-                    fontSize: 48,
-                    fontWeight: FontWeight.bold,
-                    color: textColor,
-                  ),
-                ),
-              ),
-
-              // "New Chat" button - small, left aligned, attractive
-              Align(
-                alignment: Alignment.centerLeft,
-                child: ElevatedButton(
-                  onPressed: _newChatPressed,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(30),
-                      side: BorderSide(color: newChatTextColor, width: 2),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    Text(
+                      expr,
+                      style: TextStyle(fontSize: 28, color: txtColor),
                     ),
-                    elevation: 5,
-                  ),
-                  child: Text(
-                    "New Chat",
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: newChatTextColor,
-                    ),
-                  ),
+                    Text(
+                      res,
+                      style: TextStyle(fontSize: 48, fontWeight: FontWeight.bold, color: txtColor),
+                    )
+                  ],
                 ),
               ),
+            ),
+            const SizedBox(height: 20),
+            Expanded(
+              flex: 5,
+              child: GridView.builder(
+                itemCount: buttons.length,
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 4,
+                  crossAxisSpacing: 16,
+                  mainAxisSpacing: 16,
+                ),
+                itemBuilder: (context, index) {
+                  final isOperator = ['/', '*', '-', '+', '='].contains(buttons[index]);
 
-              const SizedBox(height: 16),
-
-              // Calculator buttons grid
-              GridView.count(
-                crossAxisCount: 4,
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                crossAxisSpacing: 12,
-                mainAxisSpacing: 12,
-                children: [
-                  '7', '8', '9', '/',
-                  '4', '5', '6', '*',
-                  '1', '2', '3', '-',
-                  'C', '0', '=', '+',
-                ].map((e) => _buildButton(e, color: Colors.white)).toList(),
+                  return GestureDetector(
+                    onTap: () => onTap(buttons[index]),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: isOperator ? Colors.white : buttonBg,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: widget.isDark ? Colors.black45 : Colors.grey.shade300,
+                            offset: const Offset(2, 2),
+                            blurRadius: 8,
+                          ),
+                        ],
+                      ),
+                      child: Center(
+                        child: Text(
+                          buttons[index],
+                          style: TextStyle(
+                            fontSize: 24,
+                            color: isOperator ? Colors.black : txtColor,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                },
               ),
-            ],
-          ),
+            )
+          ],
         ),
       ),
     );
